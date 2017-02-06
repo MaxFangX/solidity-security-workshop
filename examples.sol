@@ -18,12 +18,16 @@ contract Example {
         owner = msg.sender;
     }
 
+	// Method for player to join game
+	// Each player sends a message with an amount of Ether to add into the pot
     function registerAndDeposit() payable {
         potBalance += msg.value;
         players.push(Player(msg.sender, msg.value, 0));
     }
 
     // Everyone is given a small chance to win the jackpot
+	// This method takes in money, and in return, triggers a random roll that has the potential
+	// to pay out the pot
     function potAttempt() payable {
 
         if (msg.value < 4) { // High rollers only
@@ -50,6 +54,7 @@ contract Example {
         }
     }
 
+	// allows a player to withdraw their funds/stake from the game
     function withdrawFunds(uint256 playerIndex) public {
         if (players[playerIndex].addr == msg.origin) {
             uint accountBalance = players[playerIndex].value;
@@ -60,6 +65,7 @@ contract Example {
         }
     }
 
+	// Withdraws all funds from the contract iff a jackpot occurs
     function withdrawAllFunds(boolean wasJackpot) {
 
         if (msg.sender != owner) {
