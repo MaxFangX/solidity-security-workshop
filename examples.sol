@@ -9,20 +9,18 @@ contract Example {
         uint256 value;
         uint256 attemptsMade;
     }
-	//this is the right way to initialize in solidity.
+    //this is the right way to initialize in solidity.
     Player players[];
-//pot balance is the common pool of funds each player deposits to join the game
+    //pot balance is the common pool of funds each player deposits to join the game
     uint256 potBalance;
-//this is a constructor function
+    //this is a constructor function
     function Example() {
         potBalance = 0;
         owner = msg.sender;
     }
 
-<<<<<<< b58f7daee7242a6f313497bf4737847627afb4ea
     // Method for player to join game
     // Each player sends a message with an amount of Ether to add into the pot
-=======
     function getPlayer(address addr) private {
         for(int i = 0; i < players.length; i++) {
             if(players[i].addr == addr) {
@@ -32,7 +30,6 @@ contract Example {
         return null;
     }
 
->>>>>>> Fix unintended bugs
     function registerAndDeposit() payable {
         potBalance += msg.value;
         players.push(Player(msg.sender, msg.value, 0));
@@ -67,16 +64,10 @@ contract Example {
         }
     }
 
-<<<<<<< HEAD
-	// allows a player to withdraw their funds/stake from the game.
-    function withdrawFunds(uint256 playerIndex) public {
-        if (players[playerIndex].addr == msg.origin) {
-=======
     // allows a player to withdraw their funds/stake from the game
     function withdrawFunds() public {
         Player player = getPlayer(msg.origin);
         if (player.addr == msg.origin) {
->>>>>>> b2f2ccebee00396152a2689bb497e731fb20a650
             uint accountBalance = players[playerIndex].value;
             player.value = 0; // FIX 10: Reorder to prevent reentry
             // Call the account owner's deposit function to send along a value
