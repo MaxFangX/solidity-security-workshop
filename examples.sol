@@ -19,27 +19,39 @@ contract Example {
         owner = msg.sender;
     }
 
-	// Method for player to join game
-	// Each player sends a message with an amount of Ether to add into the pot
+<<<<<<< b58f7daee7242a6f313497bf4737847627afb4ea
+    // Method for player to join game
+    // Each player sends a message with an amount of Ether to add into the pot
+=======
+    function getPlayer(address addr) private {
+        for(int i = 0; i < players.length; i++) {
+            if(players[i].addr == addr) {
+                return players[i];
+            }
+        }
+        return null;
+    }
+
+>>>>>>> Fix unintended bugs
     function registerAndDeposit() payable {
         potBalance += msg.value;
         players.push(Player(msg.sender, msg.value, 0));
     }
 
     // Everyone is given a small chance to win the jackpot
-	// This method takes in money, and in return, triggers a random roll that has the potential
-	// to pay out the pot
+    // This method takes in money, and in return, triggers a random roll that has the potential
+    // to pay out the pot
     function potAttempt() payable {
 
         if (msg.value < 4) { // High rollers only
             potBalance += msg.value;
-            throw;
+            throw; // Yes, this is intended.
         } else {
             potBalance += msg.value;
-            players[msg.sender].attemptsMade += 1;
+            getPlayer(msg.sender).attemptsMade += 1;
         }
 
-        bytes32 lastblockhash = block.blockhash(block.number);
+        bytes32 lastblockhash = block.blockhash(block.number - 1);
         uint128 randomNumber = uint128(lastblockhash)
         if (randomNumber < 2) {
             // You've hit the jackpot! Share your public funds like a good
@@ -55,33 +67,48 @@ contract Example {
         }
     }
 
+<<<<<<< HEAD
 	// allows a player to withdraw their funds/stake from the game.
     function withdrawFunds(uint256 playerIndex) public {
         if (players[playerIndex].addr == msg.origin) {
+=======
+    // allows a player to withdraw their funds/stake from the game
+    function withdrawFunds() public {
+        Player player = getPlayer(msg.origin);
+        if (player.addr == msg.origin) {
+>>>>>>> b2f2ccebee00396152a2689bb497e731fb20a650
             uint accountBalance = players[playerIndex].value;
+            player.value = 0; // FIX 10: Reorder to prevent reentry
             // Call the account owner's deposit function to send along a value
             // of accountBalance
-            if (!(msg.sender.deposit.value(accountBalance)())) { throw; }
-            players[playerIndex].value = 0;
+            if (!(player.addr.deposit.value(accountBalance)())) {
+                throw;
+            }
+            player.value = 0;
+            if (!(player.addr.deposit.value(accountBalance)())) {
+                throw;
+            }
         }
     }
 
-	// Withdraws all funds from the contract iff a jackpot occurs
+    // Withdraws all funds from the contract iff a jackpot occurs
     function withdrawAllFunds(boolean wasJackpot) {
 
         if (msg.sender != owner) {
             throw;
         }
 
+        uint128 i = 0;
+
         while (i < players.length) {
-            uint128 shareValue;
+            uint128 amount;
             if (wasJackpot) {
-                shareValue = potBalance / players.length;
+                amount = potBalance / players.length;
             } else {
-                shareValue = players[i].value;
+                amount = players[i].value;
             }
 
-            if(players[i].addr.send(shareValue)) {
+            if(!players[i].addr.send(amount)) {
                 // Throw an error if fails to send
                 throw;
             }

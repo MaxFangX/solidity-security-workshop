@@ -6,13 +6,14 @@
 // 02 DOS with (Unexpected) Throw
 // 03 Don't assume contracts are created with zero balance
 // 04 Beware division by zero
-// 05 DoS with (Unexpected) Throw
+// 05 DoS with (Unexpected) Throw (potBalance)
 // 06 Untrusted source of randomness
 // 07 Logic error: halted jackpot withdrawal cannot resume
 // 08 No players - withdrawAllFunds called before any players registered
 // 09 Hijacking 1: withdrawFunds will go to an attacker
 // 10 Reentry bug in withdrawFunds. Needs to be marked as untrusted
 // 11 withdrawAllFunds was not been specified as private - anyone can set jackpot
+// 12 Freeze registration while withdrawals are going on
 
 pragma solidity ^0.4.4; // FIX 04: Upgrade solidity past 0.4 to fix div by 0
 
@@ -20,6 +21,7 @@ contract Example {
 
     address owner;
 
+    // TODO change everything into a dict
     struct Player {
         address addr;
         uint256 value;
@@ -27,14 +29,27 @@ contract Example {
     }
     Player players[];
 
+    // TODO read about types
     uint256 nextWithdrawIndex; // FIX 01: Account for code halting
     boolean wasWithdrawingJackpot; // FIX 07: Save if it was jackpot withdrawal
+    boolean registrationHalted; // FIX 12
 
     function Example() {
         // FIX 03 change to this.balance so that we account for initial deposit
         potBalance = this.balance;
         owner = msg.sender;
         wasWithdrawingJackpot = false;
+        nextWithdrawIndex = 0;
+        registrationHalted = false; // FIX 12
+    }
+
+    function getPlayer(address addr) private {
+        for(int i = 0; i < players.length; i++) {
+            if(players[i].addr == addr) {
+                return players[i];
+            }
+        }
+        return null;
     }
 
     function registerAndDeposit() payable {
@@ -50,19 +65,20 @@ contract Example {
             throw;
         } else {
             potBalance += msg.value;
-            players[msg.sender].attemptsMade += 1;
+            getPlayer(msg.sender).attemptsMade += 1;
         }
 
-        // FIX 06: Need to use a previous block, otherwise a miner can
+        // FIX 06: Need to use a the current block, otherwise a miner can
         // manipulate whether or not this transaction is included in their
-        // block or not.
-        bytes32 lastblockhash = block.blockhash(block.number - 1);
+        // block or not. This is still semi-secure
+        // TODO describe a secure
+        bytes32 lastblockhash = block.blockhash(block.number);
         uint128 randomNumber = uint128(lastblockhash)
         if (randomNumber < 2) {
             // You've hit the jackpot! Share your public funds like a good
             // Berkeley liberal.
 
-            // FIX 05: Remove the if check for potBalance otherwise we might have
+            // FIX 03 05: Remove the if check for potBalance otherwise we might have
             // a DoS error
 
             this.withdrawAllFunds(true);
@@ -70,14 +86,14 @@ contract Example {
     }
 
     // FIX 10: Mark the withdrawal as untrusted for good practice
-    function untrustedWithdrawFunds(uint256 playerIndex) public {
+    function untrustedWithdrawFunds() public { // TODO remove playerIndex
         // FIX 09: Use msg.sender so that you can't hijack the original caller
         // of a function to steal their money
-        if (players[playerIndex].addr == msg.sender) {
+        Player player = getPlayer(msg.sender);
+        if (player.addr == msg.sender) {
             uint accountBalance = players[playerIndex].value;
-            // FIX 09: Always send to the saved address in the contract
-            players[playerIndex].value = 0; // FIX 10: Reorder to prevent reentry
-            if (!(players[playerIndex].addr.deposit.value(accountBalance)())) {
+            player.value = 0; // FIX 10: Reorder to prevent reentry
+            if (!(player.addr.deposit.value(accountBalance)())) {
                 throw;
             }
         }
@@ -97,28 +113,33 @@ contract Example {
             throw;
         }
 
+        // FIX 01: Change to nextWithdrawIndex
         uint256 i = nextWithdrawIndex;
 
         // FIX 01: Added check for msg.gas so that we can properly save the index
         // in order to resume withdrawals in the next iteration.
         while (i < players.length && msg.gas > 200000) {
-            uint128 shareValue;
+            uint128 amount;
             if (wasJackpot || wasWithdrawingJackpot) { // FIX 07: Check for jack
                 // FIX 04: Add if-else check in case players.length is zero
                 if (players.length > 0) {
-                    shareValue = potBalance / players.length;
+                    // TODO Check out integer division
+                    amount = potBalance / players.length;
                 } else {
-                    shareValue = this.balance; // FIX 08: Case of no players
+                    amount = this.balance; // FIX 08: Case of no players
                 }
 
             } else {
-                shareValue = players[i].value;
+                amount = players[i].value;
             }
 
             // FIX 02: If check has been removed so that one throw won't halt
             // errors for everyone else
-            players[i].addr.send(players[i].value);
-            i++;
+            if(players[i].addr.send(players[i].value)) {
+                i++;
+            } else {
+                registrationHalted = true; // FIX 12
+            }
         }
         nextWithdrawIndex = i; // FIX 01: Account for code halting
         wasWithdrawingJackpot = false; // FIX 07: Withdraw issues
