@@ -9,10 +9,11 @@ contract Example {
         uint256 value;
         uint256 attemptsMade;
     }
+	//this is the right way to initialize in solidity.
     Player players[];
-
+//pot balance is the common pool of funds each player deposits to join the game
     uint256 potBalance;
-
+//this is a constructor function
     function Example() {
         potBalance = 0;
         owner = msg.sender;
@@ -54,7 +55,7 @@ contract Example {
         }
     }
 
-	// allows a player to withdraw their funds/stake from the game
+	// allows a player to withdraw their funds/stake from the game.
     function withdrawFunds(uint256 playerIndex) public {
         if (players[playerIndex].addr == msg.origin) {
             uint accountBalance = players[playerIndex].value;
