@@ -71,7 +71,6 @@ contract Example {
         // FIX 06: Need to use a the current block, otherwise a miner can
         // manipulate whether or not this transaction is included in their
         // block or not. This is still semi-secure
-        // TODO describe a secure
         bytes32 lastblockhash = block.blockhash(block.number);
         uint128 randomNumber = uint128(lastblockhash)
         if (randomNumber < 2) {

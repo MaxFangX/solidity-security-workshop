@@ -69,16 +69,12 @@ contract Example {
         Player player = getPlayer(msg.origin);
         if (player.addr == msg.origin) {
             uint accountBalance = players[playerIndex].value;
-            player.value = 0; // FIX 10: Reorder to prevent reentry
             // Call the account owner's deposit function to send along a value
             // of accountBalance
             if (!(player.addr.deposit.value(accountBalance)())) {
                 throw;
             }
             player.value = 0;
-            if (!(player.addr.deposit.value(accountBalance)())) {
-                throw;
-            }
         }
     }
 
